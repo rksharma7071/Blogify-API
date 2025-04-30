@@ -1,11 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const userRouter = require('./routers/user');
+const authRouter = require('./routers/auth');
 const postRouter = require('./routers/post');
 const tagRouter = require('./routers/tag');
 const categoryRouter = require('./routers/category');
 const postTagRouter = require('./routers/postTag');
 const commentRouter = require('./routers/comment');
+require('dotenv').config();
 
 const app = express();
 
@@ -36,11 +38,20 @@ app.get('/', (req, res) => {
 
 // Router 
 app.use('/users', userRouter);
+app.use('/auth', authRouter);
 app.use('/posts', postRouter);
 app.use('/tags', tagRouter);
 app.use('/categories', categoryRouter);
 app.use('/postTags', postTagRouter);
 app.use('/comments', commentRouter);
+app.use((req, res, next) => {
+  res.status(404).json({ msg: 'Route not found' });
+});
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ msg: 'Something went wrong!' });
+});
+
 
 app.listen(8000, () => {
   console.log("Server running...")
