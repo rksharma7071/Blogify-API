@@ -10,9 +10,10 @@ const commentRouter = require('./routers/comment');
 require('dotenv').config();
 
 const app = express();
+const PORT = process.env.VITE_PORT || 5000;
 
 // mongoose.connect('mongodb://localhost:27017/blogSphare')
-mongoose.connect('mongodb+srv://rksharma7071:FvS3dI9aizQAQTPM@cluster0.jl0r7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+mongoose.connect('mongodb+srv://rksharma7071:KC2NYi2BcuntpKxY@cluster0.7rbd8p4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
   .then(() => console.log("MongoDB connected successfully!"))
   .catch((error) => console.error("MongoDB Connection Error: ", error))
 
@@ -54,6 +55,6 @@ app.use((err, req, res, next) => {
 });
 
 
-app.listen(8000, () => {
-  console.log("Server running...")
+app.listen(PORT, () => {
+  console.log(`Server running... ${PORT}`)
 })

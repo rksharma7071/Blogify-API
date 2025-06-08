@@ -29,7 +29,7 @@ async function handleAuthSignUp(req, res) {
     await newUser.save();
 
     // Generate JWT token
-    const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.VITE_JWT_SECRET, {
       expiresIn: '1d',
     });
 
@@ -62,7 +62,7 @@ async function handleAuthLogin(req, res) {
     if (!isMatch) return res.status(400).json({ msg: 'Password is incorrect.' });
 
     // Sign JWT token
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.VITE_JWT_SECRET, {
       expiresIn: '1d',
     });
 
