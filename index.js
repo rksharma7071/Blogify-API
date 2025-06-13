@@ -58,9 +58,5 @@ app.use((err, req, res, next) => {
 
 
 app.listen(PORT, () => {
-<<<<<<< HEAD
-  console.log(`Server running... ${PORT}`)
-=======
   console.log(`Server running ${PORT} ...`)
->>>>>>> c384431 (version 0.0.7)
 })
