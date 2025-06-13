@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
 const userRouter = require('./routers/user');
 const authRouter = require('./routers/auth');
 const postRouter = require('./routers/post');
@@ -10,16 +11,24 @@ const commentRouter = require('./routers/comment');
 require('dotenv').config();
 
 const app = express();
+<<<<<<< HEAD
 const PORT = process.env.VITE_PORT || 5000;
 
 // mongoose.connect('mongodb://localhost:27017/blogSphare')
 mongoose.connect('mongodb+srv://rksharma7071:KC2NYi2BcuntpKxY@cluster0.7rbd8p4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+=======
+const PORT = process.env.PORT || 3000;
+const mongoDB_URL = process.env.MONGO_URI;
+mongoose.connect(mongoDB_URL)
+>>>>>>> c384431 (version 0.0.7)
   .then(() => console.log("MongoDB connected successfully!"))
   .catch((error) => console.error("MongoDB Connection Error: ", error))
 
 // Middleware
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+app.use(cors());
+
 
 app.get('/', (req, res) => {
   const apiRoutes = {
@@ -56,5 +65,9 @@ app.use((err, req, res, next) => {
 
 
 app.listen(PORT, () => {
+<<<<<<< HEAD
   console.log(`Server running... ${PORT}`)
+=======
+  console.log(`Server running ${PORT} ...`)
+>>>>>>> c384431 (version 0.0.7)
 })
