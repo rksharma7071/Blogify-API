@@ -82,31 +82,46 @@ async function handleCreateNewPost(req, res) {
 
 async function handleGetPostUinsgId(req, res) {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findOne({ slug: req.params.slug })
+      .populate('author_id', 'username first_name last_name')
+      .populate('category_id', 'name')
+      .populate('tags', 'name');
+
+    if (!post) return res.status(404).json({ msg: "Post not found" });
+
     return res.json(post);
   } catch (error) {
-    console.error("Error Post:", error);
+    console.error("Error fetching post by slug:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
 
 async function handleUpdatePostUsingId(req, res) {
   try {
-    const post = req.body;
-    await Post.findByIdAndUpdate(req.params.id, post);
-    return res.json({ status: "success" });
+    const updatedPost = await Post.findOneAndUpdate(
+      { slug: req.params.slug },
+      req.body,
+      { new: true }
+    );
+
+    if (!updatedPost) return res.status(404).json({ msg: "Post not found" });
+
+    return res.json({ status: "success", post: updatedPost });
   } catch (error) {
-    console.error("Error Post:", error);
+    console.error("Error updating post by slug:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
 
 async function handleDeletePostUsingId(req, res) {
   try {
-    await Post.findByIdAndDelete(req.params.id);
-    return res.json({ status: "success", message: "User deleted successfully" });
+    const deletedPost = await Post.findOneAndDelete({ slug: req.params.slug });
+
+    if (!deletedPost) return res.status(404).json({ msg: "Post not found" });
+
+    return res.json({ status: "success", message: "Post deleted successfully" });
   } catch (error) {
-    console.error("Error Post:", error);
+    console.error("Error deleting post by slug:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }

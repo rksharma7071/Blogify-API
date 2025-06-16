@@ -16,7 +16,7 @@ router.route('/')
   .post(handleCreateNewPost)
   .put(handleUpdateSlug);
 
-router.route('/:id')
+router.route('/:slug')
   .get(handleGetPostUinsgId)
   .patch(handleUpdatePostUsingId)
   .delete(handleDeletePostUsingId)
