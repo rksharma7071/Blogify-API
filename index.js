@@ -5,6 +5,7 @@ const userRouter = require('./routers/user');
 const authRouter = require('./routers/auth');
 const postRouter = require('./routers/post');
 const tagRouter = require('./routers/tag');
+const searchRouter = require('./routers/search');
 const categoryRouter = require('./routers/category');
 const postTagRouter = require('./routers/postTag');
 const commentRouter = require('./routers/comment');
@@ -48,6 +49,8 @@ app.use('/tags', tagRouter);
 app.use('/categories', categoryRouter);
 app.use('/postTags', postTagRouter);
 app.use('/comments', commentRouter);
+app.use('/search', searchRouter);
+
 app.use((req, res, next) => {
   res.status(404).json({ msg: 'Route not found' });
 });

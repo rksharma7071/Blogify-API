@@ -4,7 +4,8 @@ const {
   handleCreateNewPost,
   handleGetPostUinsgId,
   handleUpdatePostUsingId,
-  handleDeletePostUsingId
+  handleDeletePostUsingId,
+  handleUpdateSlug
 } = require('../controllers/post')
 
 
@@ -12,12 +13,13 @@ const router = express.Router();
 
 router.route('/')
   .get(handleGetAllPosts)
-  .post(handleCreateNewPost);
+  .post(handleCreateNewPost)
+  .put(handleUpdateSlug);
 
 router.route('/:id')
   .get(handleGetPostUinsgId)
   .patch(handleUpdatePostUsingId)
   .delete(handleDeletePostUsingId)
 
-  
+
 module.exports = router;
