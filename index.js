@@ -27,6 +27,7 @@ app.use(cors());
 app.get('/', (req, res) => {
   const apiRoutes = {
     "/users": "User related operations",
+    "/auth": "Login related operations",
     "/posts": "Post related operations",
     "/tags": "Tag related operations",
     "/categories": "Category related operations",
