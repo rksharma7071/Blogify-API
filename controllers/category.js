@@ -20,25 +20,41 @@ async function handleCreateNewCategory(req, res) {
       return res.status(400).json({ msg: "All fields are required..." });
     }
 
+    // ✅ Check if the category already exists
+    const existingCategory = await Category.findOne({ name: name.trim() });
+
+    if (existingCategory) {
+      return res.status(200).json({
+        msg: "Category already exists",
+        category: {
+          id: existingCategory._id,
+          name: existingCategory.name
+        }
+      });
+    }
+
+    // ✅ Create new category
     const newCategory = new Category({
-      name, 
-      description
+      name: name.trim(),
+      description: description.trim()
     });
 
     const result = await newCategory.save();
 
     return res.status(201).json({
       msg: "Category created successfully",
-      tag: {
+      category: {
         id: result._id,
         name: result.name
       }
     });
+
   } catch (error) {
     console.error("Error Category:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
+
 
 async function handleGetCategoryUinsgId(req, res) {
   try {

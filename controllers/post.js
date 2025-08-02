@@ -1,15 +1,15 @@
-const Post = require('../models/post');
-const User = require('../models/user');
-const Category = require('../models/category');
-const Tag = require('../models/tag');
-const slugify = require('slugify');
-
+const Post = require("../models/post");
+const User = require("../models/user");
+const Category = require("../models/category");
+const Tag = require("../models/tag");
+const slugify = require("slugify");
 
 async function handleGetAllPosts(req, res) {
   try {
-    const posts = await Post.find({}).populate('author_id', 'username first_name last_name')  // Optional: Populate author details
-      .populate('category_id', 'name')  // Optional: Populate category name
-      .populate('tags', 'name');  // Optional: Populate tag names
+    const posts = await Post.find({})
+      .populate("author_id", "username first_name last_name") // Optional: Populate author details
+      .populate("category_id", "name") // Optional: Populate category name
+      .populate("tags", "name"); // Optional: Populate tag names
     return res.json(posts);
   } catch (error) {
     console.error("Error Post:", error);
@@ -19,36 +19,67 @@ async function handleGetAllPosts(req, res) {
 
 async function handleCreateNewPost(req, res) {
   try {
-    const { title, content, author_id, category_id, tags, status, featured_image } = req.body;
+    const {
+      title,
+      content,
+      author_id,
+      category_id,
+      tags,
+      status,
+      featured_image,
+    } = req.body;
 
     if (!title || !content || !author_id || !category_id || !tags || !status) {
       return res.status(400).json({ msg: "All fields are required..." });
     }
 
+    // ✅ Validate Author
     const author = await User.findById(author_id);
     if (!author) return res.status(400).json({ msg: "Author not found." });
 
+    // ✅ Validate Category
     const category = await Category.findById(category_id);
     if (!category) return res.status(400).json({ msg: "Category not found." });
 
-    const tagExists = await Tag.find({ '_id': { $in: tags } });
+    // ✅ Validate Tags
+    const tagExists = await Tag.find({ _id: { $in: tags } });
     if (tagExists.length !== tags.length) {
       return res.status(400).json({ msg: "Some tags are invalid." });
     }
 
+    // ✅ Generate slug
     const baseSlug = title
       .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
+      .replace(/[^\w\s-]/g, "")
       .trim()
-      .replace(/\s+/g, '-');
+      .replace(/\s+/g, "-");
 
+    // ✅ Check if post already exists by slug or title
+    const existingPost = await Post.findOne({
+      $or: [{ slug: baseSlug }, { title }],
+    });
+
+    if (existingPost) {
+      return res.status(200).json({
+        msg: "Post already exists",
+        post: {
+          id: existingPost._id,
+          slug: existingPost.slug,
+          title: existingPost.title,
+          status: existingPost.status,
+          createdAt: existingPost.createdAt,
+        },
+      });
+    }
+
+    // ✅ Ensure unique slug
     let slug = baseSlug;
     let counter = 1;
-
     while (await Post.exists({ slug })) {
       slug = `${baseSlug}-${counter++}`;
     }
 
+    // ✅ Create new post
     const newPost = new Post({
       slug,
       title,
@@ -69,23 +100,21 @@ async function handleCreateNewPost(req, res) {
         slug: result.slug,
         title: result.title,
         status: result.status,
-        createdAt: result.createdAt
-      }
+        createdAt: result.createdAt,
+      },
     });
-
   } catch (error) {
     console.error("Error creating post:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
 
-
 async function handleGetPostUinsgId(req, res) {
   try {
     const post = await Post.findOne({ slug: req.params.slug })
-      .populate('author_id', 'username first_name last_name')
-      .populate('category_id', 'name')
-      .populate('tags', 'name');
+      .populate("author_id", "username first_name last_name")
+      .populate("category_id", "name")
+      .populate("tags", "name");
 
     if (!post) return res.status(404).json({ msg: "Post not found" });
 
@@ -119,7 +148,10 @@ async function handleDeletePostUsingId(req, res) {
 
     if (!deletedPost) return res.status(404).json({ msg: "Post not found" });
 
-    return res.json({ status: "success", message: "Post deleted successfully" });
+    return res.json({
+      status: "success",
+      message: "Post deleted successfully",
+    });
   } catch (error) {
     console.error("Error deleting post by slug:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
@@ -130,7 +162,7 @@ const handleUpdateSlug = async (req, res) => {
   try {
     const posts = await Post.find({}, { _id: 1, title: 1, slug: 1 }).lean();
 
-    const existingSlugs = new Set(posts.map(p => p.slug));
+    const existingSlugs = new Set(posts.map((p) => p.slug));
     const updatedSlugs = new Set();
 
     const ops = [];
@@ -149,20 +181,21 @@ const handleUpdateSlug = async (req, res) => {
         ops.push({
           updateOne: {
             filter: { _id: post._id },
-            update: { $set: { slug } }
-          }
+            update: { $set: { slug } },
+          },
         });
       }
     }
 
     if (ops.length) await Post.bulkWrite(ops);
 
-    res.status(200).json({ updated: ops.length, message: 'Slugs updated successfully' });
+    res
+      .status(200)
+      .json({ updated: ops.length, message: "Slugs updated successfully" });
   } catch (err) {
-    res.status(500).json({ error: 'Slug update failed', details: err.message });
+    res.status(500).json({ error: "Slug update failed", details: err.message });
   }
 };
-
 
 module.exports = {
   handleGetAllPosts,
@@ -170,5 +203,5 @@ module.exports = {
   handleGetPostUinsgId,
   handleUpdatePostUsingId,
   handleDeletePostUsingId,
-  handleUpdateSlug
-}
+  handleUpdateSlug,
+};

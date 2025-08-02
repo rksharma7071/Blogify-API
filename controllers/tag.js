@@ -17,13 +17,24 @@ async function handleCreateNewTag(req, res) {
     const { name } = req.body;
 
     if (!name) {
-      return res.status(400).json({ msg: "All fields are required..." });
+      return res.status(400).json({ msg: "Tag name is required." });
     }
 
-    const newTag = new Tag({
-      name
-    });
+    // ✅ Check if tag already exists
+    const existingTag = await Tag.findOne({ name: name.trim() });
 
+    if (existingTag) {
+      return res.status(200).json({
+        msg: "Tag already exists",
+        tag: {
+          id: existingTag._id,
+          name: existingTag.name
+        }
+      });
+    }
+
+    // ✅ Create new tag
+    const newTag = new Tag({ name: name.trim() });
     const result = await newTag.save();
 
     return res.status(201).json({
@@ -33,11 +44,13 @@ async function handleCreateNewTag(req, res) {
         name: result.name
       }
     });
+
   } catch (error) {
     console.error("Error Tag:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
+
 
 async function handleGetTagUinsgId(req, res) {
   try {
