@@ -14,9 +14,13 @@ const postSchema = new mongoose.Schema(
     tags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tag" }],
     status: { type: String, enum: ["published", "draft"], default: "draft" },
     featured_image: {
-      data: Buffer,
-      contentType: String,
+      type: String,
+      required: false,
     },
+    // {
+    //   data: Buffer,
+    //   contentType: String,
+    // },
   },
   { timestamps: true }
 );

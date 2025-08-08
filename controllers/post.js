@@ -19,7 +19,15 @@ async function handleGetAllPosts(req, res) {
 
 async function handleCreateNewPost(req, res) {
   try {
-    const { title, content, author_id, category_id, tags, status } = req.body;
+    let { title, content, author_id, category_id, tags, status } = req.body;
+
+    if (typeof tags === "string") {
+      try {
+        tags = JSON.parse(tags);
+      } catch (err) {
+        return res.status(400).json({ error: "Invalid tags format" });
+      }
+    }
 
     if (!title || !content || !author_id || !category_id || !tags || !status) {
       return res.status(400).json({ msg: "All fields are required..." });
@@ -64,9 +72,9 @@ async function handleCreateNewPost(req, res) {
     while (await Post.exists({ slug })) {
       slug = `${baseSlug}-${counter++}`;
     }
-
+    console.log("Request: ", req);
     const featured_image = req.file ? `/uploads/${req.file.filename}` : "";
-
+    console.log("featured_image: ", featured_image)
     const newPost = new Post({
       slug,
       title,
