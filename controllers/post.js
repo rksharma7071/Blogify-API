@@ -19,42 +19,29 @@ async function handleGetAllPosts(req, res) {
 
 async function handleCreateNewPost(req, res) {
   try {
-    const {
-      title,
-      content,
-      author_id,
-      category_id,
-      tags,
-      status,
-      featured_image,
-    } = req.body;
+    const { title, content, author_id, category_id, tags, status } = req.body;
 
     if (!title || !content || !author_id || !category_id || !tags || !status) {
       return res.status(400).json({ msg: "All fields are required..." });
     }
 
-    // ✅ Validate Author
     const author = await User.findById(author_id);
     if (!author) return res.status(400).json({ msg: "Author not found." });
 
-    // ✅ Validate Category
     const category = await Category.findById(category_id);
     if (!category) return res.status(400).json({ msg: "Category not found." });
 
-    // ✅ Validate Tags
     const tagExists = await Tag.find({ _id: { $in: tags } });
     if (tagExists.length !== tags.length) {
       return res.status(400).json({ msg: "Some tags are invalid." });
     }
 
-    // ✅ Generate slug
     const baseSlug = title
       .toLowerCase()
       .replace(/[^\w\s-]/g, "")
       .trim()
       .replace(/\s+/g, "-");
 
-    // ✅ Check if post already exists by slug or title
     const existingPost = await Post.findOne({
       $or: [{ slug: baseSlug }, { title }],
     });
@@ -72,14 +59,14 @@ async function handleCreateNewPost(req, res) {
       });
     }
 
-    // ✅ Ensure unique slug
     let slug = baseSlug;
     let counter = 1;
     while (await Post.exists({ slug })) {
       slug = `${baseSlug}-${counter++}`;
     }
 
-    // ✅ Create new post
+    const featured_image = req.file ? `/uploads/${req.file.filename}` : "";
+
     const newPost = new Post({
       slug,
       title,
@@ -100,6 +87,7 @@ async function handleCreateNewPost(req, res) {
         slug: result.slug,
         title: result.title,
         status: result.status,
+        featured_image: result.featured_image,
         createdAt: result.createdAt,
       },
     });
