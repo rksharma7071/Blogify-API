@@ -15,11 +15,11 @@ const router = express.Router();
 router.route("/")
   .get(handleGetAllPosts)
   .post(upload.single("featured_image"), handleCreateNewPost)
-  .put(handleUpdateSlug);
+  .patch(handleUpdateSlug);
 
 router.route("/:slug")
   .get(handleGetPostUinsgId)
-  .patch(handleUpdatePostUsingId)
+  .patch(upload.single("featured_image"), handleUpdatePostUsingId)
   .delete(handleDeletePostUsingId);
 
 module.exports = router;

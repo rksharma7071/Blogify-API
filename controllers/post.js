@@ -74,7 +74,7 @@ async function handleCreateNewPost(req, res) {
     }
     console.log("Request: ", req);
     const featured_image = req.file ? `/uploads/${req.file.filename}` : "";
-    console.log("featured_image: ", featured_image)
+    console.log("featured_image: ", featured_image);
     const newPost = new Post({
       slug,
       title,
@@ -123,17 +123,88 @@ async function handleGetPostUinsgId(req, res) {
 
 async function handleUpdatePostUsingId(req, res) {
   try {
-    const updatedPost = await Post.findOneAndUpdate(
-      { slug: req.params.slug },
-      req.body,
-      { new: true }
-    );
+    const { slug } = req.params;
+    let { title, content, author_id, category_id, tags, status } = req.body;
 
-    if (!updatedPost) return res.status(404).json({ msg: "Post not found" });
+    // Find the post by slug
+    const post = await Post.findOne({ slug });
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found." });
+    }
 
-    return res.json({ status: "success", post: updatedPost });
+    // Convert tags from string to array if needed
+    if (typeof tags === "string") {
+      try {
+        tags = JSON.parse(tags);
+      } catch (err) {
+        return res.status(400).json({ error: "Invalid tags format" });
+      }
+    }
+
+    // Validate fields if provided
+    if (author_id) {
+      const author = await User.findById(author_id);
+      if (!author) return res.status(400).json({ msg: "Author not found." });
+    }
+
+    if (category_id) {
+      const category = await Category.findById(category_id);
+      if (!category)
+        return res.status(400).json({ msg: "Category not found." });
+    }
+
+    if (tags && tags.length > 0) {
+      const tagExists = await Tag.find({ _id: { $in: tags } });
+      if (tagExists.length !== tags.length) {
+        return res.status(400).json({ msg: "Some tags are invalid." });
+      }
+    }
+
+    // If title changes, generate unique slug
+    if (title && title !== post.title) {
+      const baseSlug = title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+
+      let newSlug = baseSlug;
+      let counter = 1;
+      while (await Post.exists({ slug: newSlug, _id: { $ne: post._id } })) {
+        newSlug = `${baseSlug}-${counter++}`;
+      }
+      post.slug = newSlug;
+      post.title = title;
+    }
+
+    // Update other fields if provided
+    if (content) post.content = content;
+    if (author_id) post.author_id = author_id;
+    if (category_id) post.category_id = category_id;
+    if (tags) post.tags = tags;
+    if (status) post.status = status;
+
+    // Update featured image if new file uploaded
+    if (req.file) {
+      post.featured_image = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedPost = await post.save();
+
+    return res.status(200).json({
+      msg: "Post updated successfully",
+      post: {
+        id: updatedPost._id,
+        slug: updatedPost.slug,
+        title: updatedPost.title,
+        status: updatedPost.status,
+        featured_image: updatedPost.featured_image,
+        createdAt: updatedPost.createdAt,
+        updatedAt: updatedPost.updatedAt,
+      },
+    });
   } catch (error) {
-    console.error("Error updating post by slug:", error);
+    console.error("Error updating post:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
