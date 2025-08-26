@@ -13,14 +13,8 @@ const postSchema = new mongoose.Schema(
     category_id: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     tags: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tag" }],
     status: { type: String, enum: ["published", "draft"], default: "draft" },
-    featured_image: {
-      type: String,
-      required: false,
-    },
-    // {
-    //   data: Buffer,
-    //   contentType: String,
-    // },
+    featured_image: { type: String, required: false },
+    public_id: { type: String, required: false },
   },
   { timestamps: true }
 );

@@ -1,4 +1,4 @@
-const User = require('../models/user')
+const User = require("../models/user");
 
 async function handleGetAllUsers(req, res) {
   const users = await User.find({});
@@ -9,7 +9,14 @@ async function handleCreateNewUser(req, res) {
   try {
     const body = req.body;
 
-    if (!body.username || !body.email || !body.password || !body.first_name || !body.last_name || !body.role) {
+    if (
+      !body.username ||
+      !body.email ||
+      !body.password ||
+      !body.first_name ||
+      !body.last_name ||
+      !body.role
+    ) {
       return res.status(400).json({ msg: "All fields are required..." });
     }
 
@@ -23,7 +30,9 @@ async function handleCreateNewUser(req, res) {
     });
 
     console.log("Result: ", result);
-    return res.status(201).json({ msg: "User created successfully", user: result });
+    return res
+      .status(201)
+      .json({ msg: "User created successfully", user: result });
   } catch (error) {
     console.error("Error creating user:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
@@ -36,9 +45,64 @@ async function handleGetUserUinsgId(req, res) {
 }
 
 async function handleUpdateUserUsingId(req, res) {
-  const user = req.body;
-  await User.findByIdAndUpdate(req.params.id, user);
-  return res.json({ status: "success" });
+  try {
+    const { id } = req.params;
+    const {
+      username,
+      email,
+      first_name,
+      last_name,
+      role,
+      facebook,
+      instagram,
+      twitter,
+      linkedIn,
+      snapchat,
+      pinterest,
+    } = req.body;
+
+    socialLinks = {
+      facebook,
+      instagram,
+      twitter,
+      linkedIn,
+      snapchat,
+      pinterest,
+    };
+    console.log(socialLinks);
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    if (username) user.username = username;
+    if (email) user.email = email;
+    if (first_name) user.first_name = first_name;
+    if (last_name) user.last_name = last_name;
+    if (role) user.role = role;
+    if (socialLinks) user.socialLinks = socialLinks;
+
+    const updatedUser = await user.save();
+
+    return res.json({
+      status: "success",
+      user: {
+        id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        first_name: updatedUser.first_name,
+        last_name: updatedUser.last_name,
+        role: updatedUser.role,
+        socialLinks: updatedUser.socialLinks,
+        createdAt: updatedUser.createdAt,
+        updatedAt: updatedUser.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return res.status(500).json({ msg: "Internal Server Error" });
+  }
 }
 
 async function handleDeleteUserUsingId(req, res) {
@@ -51,5 +115,5 @@ module.exports = {
   handleCreateNewUser,
   handleGetUserUinsgId,
   handleUpdateUserUsingId,
-  handleDeleteUserUsingId
-}
+  handleDeleteUserUsingId,
+};

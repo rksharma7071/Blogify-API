@@ -73,7 +73,9 @@ async function handleCreateNewPost(req, res) {
       slug = `${baseSlug}-${counter++}`;
     }
     console.log("Request: ", req);
-    const featured_image = req.file ? `/uploads/${req.file.filename}` : "";
+    const featured_image = req.file.path;
+    const public_id = req.file.filename;
+
     console.log("featured_image: ", featured_image);
     const newPost = new Post({
       slug,
@@ -84,6 +86,7 @@ async function handleCreateNewPost(req, res) {
       tags,
       status,
       featured_image,
+      public_id,
     });
 
     const result = await newPost.save();
@@ -186,7 +189,8 @@ async function handleUpdatePostUsingId(req, res) {
 
     // Update featured image if new file uploaded
     if (req.file) {
-      post.featured_image = `/uploads/${req.file.filename}`;
+      post.featured_image = req.file.path;
+      post.public_id = req.file.filename;
     }
 
     const updatedPost = await post.save();

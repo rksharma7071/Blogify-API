@@ -1,5 +1,6 @@
 const express = require("express");
-const upload = require("../middlewares/upload");
+const upload = require("../config/multer");
+
 const {
   handleGetAllPosts,
   handleCreateNewPost,
@@ -12,12 +13,14 @@ const {
 const router = express.Router();
 
 // Use .single() for single image file upload
-router.route("/")
+router
+  .route("/")
   .get(handleGetAllPosts)
   .post(upload.single("featured_image"), handleCreateNewPost)
   .patch(handleUpdateSlug);
 
-router.route("/:slug")
+router
+  .route("/:slug")
   .get(handleGetPostUinsgId)
   .patch(upload.single("featured_image"), handleUpdatePostUsingId)
   .delete(handleDeletePostUsingId);
