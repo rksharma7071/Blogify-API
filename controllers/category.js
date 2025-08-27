@@ -1,11 +1,10 @@
-const Category = require('../models/category');
-
+const Category = require("../models/category");
+const slugify = require("slugify");
 
 async function handleGetAllCategories(req, res) {
   try {
     const category = await Category.find({});
     return res.json(category);
-
   } catch (error) {
     console.error("Error category:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
@@ -28,15 +27,15 @@ async function handleCreateNewCategory(req, res) {
         msg: "Category already exists",
         category: {
           id: existingCategory._id,
-          name: existingCategory.name
-        }
+          name: existingCategory.name,
+        },
       });
     }
 
     // ✅ Create new category
     const newCategory = new Category({
       name: name.trim(),
-      description: description.trim()
+      description: description.trim(),
     });
 
     const result = await newCategory.save();
@@ -45,24 +44,26 @@ async function handleCreateNewCategory(req, res) {
       msg: "Category created successfully",
       category: {
         id: result._id,
-        name: result.name
-      }
+        name: result.name,
+      },
     });
-
   } catch (error) {
     console.error("Error Category:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
 
-
 async function handleGetCategoryUinsgId(req, res) {
   try {
-    const category = await Category.findById(req.params.id);
-    return res.json(category);
-  }
-  catch (error) {
-    console.error("Error Category:", error);
+    const slug = req.params.id;
+    const category = await Category.findOne({ slug });
+    if (!category) {
+      return res.status(404).json({ msg: "Category not found" });
+    }
+
+    return res.status(200).json(category);
+  } catch (error) {
+    console.error("Error fetching category:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
@@ -81,18 +82,68 @@ async function handleUpdateCategoryUsingId(req, res) {
 async function handleDeleteCategoryUsingId(req, res) {
   try {
     await Category.findByIdAndDelete(req.params.id);
-    return res.json({ status: "success", message: "Category deleted successfully" });
+    return res.json({
+      status: "success",
+      message: "Category deleted successfully",
+    });
   } catch (error) {
     console.error("Error Category:", error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
 
+const handleUpdateSlug = async (req, res) => {
+  try {
+    // get only name and slug fields
+    const categories = await Category.find(
+      {},
+      { _id: 1, name: 1, slug: 1 }
+    ).lean();
+
+    const existingSlugs = new Set(categories.map((c) => c.slug));
+    const updatedSlugs = new Set();
+
+    const ops = [];
+
+    for (const category of categories) {
+      // generate slug from category.name
+      const base = slugify(category.name, { lower: true, strict: true });
+      let slug = base;
+      let i = 1;
+
+      // ensure uniqueness
+      while (existingSlugs.has(slug) || updatedSlugs.has(slug)) {
+        slug = `${base}-${i++}`;
+      }
+
+      // only update if slug has changed
+      if (slug !== category.slug) {
+        updatedSlugs.add(slug);
+        ops.push({
+          updateOne: {
+            filter: { _id: category._id },
+            update: { $set: { slug } },
+          },
+        });
+      }
+    }
+
+    if (ops.length) await Category.bulkWrite(ops);
+
+    res.status(200).json({
+      updated: ops.length,
+      message: "Slugs updated successfully",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Slug update failed", details: err.message });
+  }
+};
 
 module.exports = {
   handleGetAllCategories,
   handleCreateNewCategory,
   handleGetCategoryUinsgId,
   handleUpdateCategoryUsingId,
-  handleDeleteCategoryUsingId
-}
+  handleDeleteCategoryUsingId,
+  handleUpdateSlug,
+};

@@ -4,7 +4,8 @@ const {
   handleCreateNewCategory,
   handleGetCategoryUinsgId,
   handleUpdateCategoryUsingId,
-  handleDeleteCategoryUsingId
+  handleDeleteCategoryUsingId,
+  handleUpdateSlug
 } = require('../controllers/category');
 
 
@@ -13,7 +14,7 @@ const router = express.Router();
 router.route('/')
   .get(handleGetAllCategories)
   .post(handleCreateNewCategory)
-
+  .patch(handleUpdateSlug);
 router.route('/:id')
   .get(handleGetCategoryUinsgId)
   .patch(handleUpdateCategoryUsingId)
