@@ -1,7 +1,6 @@
 const Comment = require('../models/comment');
 
 
-
 async function handleGetAllComments(req, res) {
   try {
     const comments = await Comment.find({});

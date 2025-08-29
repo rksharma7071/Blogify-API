@@ -1,7 +1,11 @@
-const User = require('../models/user');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');;
+const User = require("../models/user");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 async function handleAuthSignUp(req, res) {
   const { username, email, password, first_name, last_name } = req.body;
@@ -10,7 +14,7 @@ async function handleAuthSignUp(req, res) {
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      return res.status(400).json({ msg: 'Email or username already in use' });
+      return res.status(400).json({ msg: "Email or username already in use" });
     }
 
     // Hash password
@@ -29,9 +33,13 @@ async function handleAuthSignUp(req, res) {
     await newUser.save();
 
     // Generate JWT token
-    const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
-      expiresIn: '1d',
-    });
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1d",
+      }
+    );
     console.log("Generated Token:", token);
     res.json({
       token,
@@ -46,42 +54,9 @@ async function handleAuthSignUp(req, res) {
     });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ msg: 'Server error' });
+    res.status(500).json({ msg: "Server error" });
   }
 }
-// async function handleAuthLogin(req, res) {
-//   const { email, password } = req.body;
-
-//   try {
-//     // Find user by email
-//     const user = await User.findOne({ email });
-//     if (!user) return res.status(400).json({ msg: 'User not found.' });
-
-//     // Compare password
-//     const isMatch = await bcrypt.compare(password, user.password);
-//     if (!isMatch) return res.status(400).json({ msg: 'Password is incorrect.' });
-
-//     // Sign JWT token
-//     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-//       expiresIn: '1d',
-//     });
-
-//     res.json({
-//       token,
-//       user: {
-//         id: user._id,
-//         username: user.username,
-//         email: user.email,
-//         first_name: user.first_name,
-//         last_name: user.last_name,
-//         role: user.role,
-//       },
-//     });
-//   } catch (err) {
-//     console.error(err.message);
-//     res.status(500).json({ msg: 'Server error' });
-//   }
-// }; 
 
 async function handleAuthLogin(req, res) {
   const { email, password } = req.body;
@@ -137,7 +112,116 @@ async function handleAuthLogin(req, res) {
   }
 }
 
+async function handleAuthChangePassword(req, res) {
+  const { email, oldPassword, newPassword } = req.body;
+
+  if (!email || !oldPassword || !newPassword) {
+    return res
+      .status(400)
+      .json({ msg: "Please provide email, old password, and new password." });
+  }
+
+  try {
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ msg: "User not found." });
+    }
+
+    // Compare old password
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ msg: "Old password is incorrect." });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update user's password
+    user.password = hashedNewPassword;
+    await user.save();
+
+    res.json({ msg: "Password changed successfully." });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: "Server error" });
+  }
+}
+
+async function handleAuthRequestOTP(req, res) {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  const otp = generateOTP();
+  user.otp = otp;
+  user.otpExpiry = Date.now() + 5 * 60 * 1000; // 5 min expiry
+  await user.save();
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+  
+  await transporter.sendMail({
+    from: `"Password Reset" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "Your OTP Code",
+    text: `Your OTP is ${otp}. It expires in 5 minutes.`,
+    html: `
+    <div style="font-family: Arial, sans-serif; padding: 20px;">
+      <h2 style="color:#333;">Password Reset Request</h2>
+      <p>Hello,</p>
+      <p>Your OTP code is:</p>
+      <h1 style="background:#f4f4f4; display:inline-block; padding:10px 20px; border-radius:5px; color:#333;">
+        ${otp}
+      </h1>
+      <p style="margin-top:20px;">⚠️ This OTP will expire in <b>5 minutes</b>.</p>
+      <p>If you didn’t request a password reset, you can safely ignore this email.</p>
+      <br/>
+      <p style="color:#888;">— Your App Team</p>
+    </div>
+  `,
+  });
+
+  res.json({ message: "OTP sent successfully" });
+}
+
+async function handleAuthVerifyOTP(req, res) {
+  const { email, otp } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  if (user.otp !== otp || Date.now() > user.otpExpiry) {
+    return res.status(400).json({ message: "Invalid or expired OTP" });
+  }
+
+  res.json({ message: "OTP verified, you can reset password now" });
+}
+
+async function handleAuthResetPassword(req, res) {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  user.password = hashedPassword;
+  user.otp = null;
+  user.otpExpiry = null;
+  await user.save();
+
+  res.json({ message: "Password reset successfully" });
+}
+
 module.exports = {
   handleAuthSignUp,
-  handleAuthLogin
-}
+  handleAuthLogin,
+  handleAuthChangePassword,
+  handleAuthRequestOTP,
+  handleAuthVerifyOTP,
+  handleAuthResetPassword,
+};

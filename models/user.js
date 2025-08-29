@@ -16,6 +16,8 @@ const userSchema = new mongoose.Schema(
       snapchat: { type: String, default: "" },
       pinterest: { type: String, default: "" },
     },
+    otp: { type: String },
+    otpExpiry: { type: Date },
   },
   { timestamps: true }
 );
