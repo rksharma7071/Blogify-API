@@ -16,6 +16,10 @@ async function handleCreateNewCategory(req, res) {
     const { name, description } = req.body;
 
     if (!name || !description) {
+
+      console.log(`---------------------------------------------------------------------`)
+      console.log(`Name: ${name}, Description ${description}`)
+      console.log(`---------------------------------------------------------------------`)
       return res.status(400).json({ msg: "All fields are required..." });
     }
 
@@ -36,6 +40,7 @@ async function handleCreateNewCategory(req, res) {
     const newCategory = new Category({
       name: name.trim(),
       description: description.trim(),
+      slug: slugify(name, { lower: true, strict: true })
     });
 
     const result = await newCategory.save();

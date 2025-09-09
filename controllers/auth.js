@@ -166,7 +166,7 @@ async function handleAuthRequestOTP(req, res) {
       pass: process.env.EMAIL_PASS,
     },
   });
-  
+
   await transporter.sendMail({
     from: `"Password Reset" <${process.env.EMAIL_USER}>`,
     to: email,
