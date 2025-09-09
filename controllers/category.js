@@ -16,15 +16,14 @@ async function handleCreateNewCategory(req, res) {
     const { name, description } = req.body;
 
     if (!name || !description) {
-
-      console.log(`---------------------------------------------------------------------`)
-      console.log(`Name: ${name}, Description ${description}`)
-      console.log(`---------------------------------------------------------------------`)
       return res.status(400).json({ msg: "All fields are required..." });
     }
 
-    // ✅ Check if the category already exists
-    const existingCategory = await Category.findOne({ name: name.trim() });
+    const slug = slugify(name, { lower: true, strict: true });
+
+    const existingCategory = await Category.findOne({
+      $or: [{ name: name.trim() }, { slug }],
+    });
 
     if (existingCategory) {
       return res.status(200).json({
@@ -36,11 +35,10 @@ async function handleCreateNewCategory(req, res) {
       });
     }
 
-    // ✅ Create new category
     const newCategory = new Category({
       name: name.trim(),
       description: description.trim(),
-      slug: slugify(name, { lower: true, strict: true })
+      slug,
     });
 
     const result = await newCategory.save();
@@ -53,8 +51,21 @@ async function handleCreateNewCategory(req, res) {
       },
     });
   } catch (error) {
-    console.error("Error Category:", error);
-    return res.status(500).json({ msg: "Internal Server Error" });
+    if (error.code === 11000) {
+      const slugValue = error.keyValue?.slug || "";
+      const duplicateCategory = await Category.findOne({ slug: slugValue });
+
+      return res.status(200).json({
+        msg: "Category already exists (duplicate slug)",
+        category: {
+          id: duplicateCategory._id,
+          name: duplicateCategory.name,
+        },
+      });
+    }
+
+    console.error("❌ Error Category:", error);
+    return res.status(500).json({ msg: error.message });
   }
 }
 
@@ -99,7 +110,6 @@ async function handleDeleteCategoryUsingId(req, res) {
 
 const handleUpdateSlug = async (req, res) => {
   try {
-    // get only name and slug fields
     const categories = await Category.find(
       {},
       { _id: 1, name: 1, slug: 1 }
@@ -111,17 +121,14 @@ const handleUpdateSlug = async (req, res) => {
     const ops = [];
 
     for (const category of categories) {
-      // generate slug from category.name
       const base = slugify(category.name, { lower: true, strict: true });
       let slug = base;
       let i = 1;
 
-      // ensure uniqueness
       while (existingSlugs.has(slug) || updatedSlugs.has(slug)) {
         slug = `${base}-${i++}`;
       }
 
-      // only update if slug has changed
       if (slug !== category.slug) {
         updatedSlugs.add(slug);
         ops.push({
